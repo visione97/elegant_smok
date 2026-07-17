@@ -147,9 +147,13 @@ export default function AdminPanel({
   const [cbd, setCbd] = useState<number>(20);
   const [thc, setThc] = useState<number>(0.4);
   const [aromaInput, setAromaInput] = useState('');
-  const [price15, setPrice15] = useState<number>(12);
-  const [price5, setPrice5] = useState<number>(35);
-  const [price10, setPrice10] = useState<number>(60);
+  const [customPrices, setCustomPrices] = useState<Array<{ weight: string; price: number }>>([
+    { weight: '1.5g', price: 12 },
+    { weight: '5g', price: 35 },
+    { weight: '10g', price: 60 }
+  ]);
+  const [isWeightsModalOpen, setIsWeightsModalOpen] = useState(false);
+  const [tempWeights, setTempWeights] = useState<Array<{ weight: string; price: number }>>([]);
   const [imageUrl, setImageUrl] = useState('');
   const [badge, setBadge] = useState('');
 
@@ -248,6 +252,11 @@ export default function AdminPanel({
     }, 2000);
   };
 
+  const openWeightsModal = () => {
+    setTempWeights(customPrices.map(item => ({ ...item })));
+    setIsWeightsModalOpen(true);
+  };
+
   const openAddForm = () => {
     setEditingProduct(null);
     setName('');
@@ -257,9 +266,11 @@ export default function AdminPanel({
     setCbd(20);
     setThc(0.4);
     setAromaInput('');
-    setPrice15(12);
-    setPrice5(35);
-    setPrice10(60);
+    setCustomPrices([
+      { weight: '1.5g', price: 12 },
+      { weight: '5g', price: 35 },
+      { weight: '10g', price: 60 }
+    ]);
     setImageUrl('');
     setBadge('');
     setFormError(null);
@@ -275,9 +286,25 @@ export default function AdminPanel({
     setCbd(prod.cbd || 0);
     setThc(prod.thc || 0);
     setAromaInput(Array.isArray(prod.aroma) ? prod.aroma.join(', ') : '');
-    setPrice15(prod.prices && prod.prices['1.5g'] !== undefined ? prod.prices['1.5g'] : 12);
-    setPrice5(prod.prices && prod.prices['5g'] !== undefined ? prod.prices['5g'] : 35);
-    setPrice10(prod.prices && prod.prices['10g'] !== undefined ? prod.prices['10g'] : 60);
+    
+    if (prod.prices && typeof prod.prices === 'object') {
+      const items = Object.entries(prod.prices).map(([weight, price]) => ({
+        weight,
+        price: Number(price)
+      }));
+      setCustomPrices(items.length > 0 ? items : [
+        { weight: '1.5g', price: 12 },
+        { weight: '5g', price: 35 },
+        { weight: '10g', price: 60 }
+      ]);
+    } else {
+      setCustomPrices([
+        { weight: '1.5g', price: 12 },
+        { weight: '5g', price: 35 },
+        { weight: '10g', price: 60 }
+      ]);
+    }
+
     setImageUrl(prod.image || '');
     setBadge(prod.badge || '');
     setFormError(null);
@@ -377,6 +404,17 @@ export default function AdminPanel({
       .map((a) => a.trim())
       .filter((a) => a.length > 0);
 
+    const pricesObj: Record<string, number> = {};
+    customPrices.forEach((item) => {
+      if (item.weight.trim()) {
+        pricesObj[item.weight.trim()] = Number(item.price) || 0;
+      }
+    });
+
+    if (Object.keys(pricesObj).length === 0) {
+      pricesObj['1.5g'] = 12;
+    }
+
     const productPayload: Product = {
       id: editingProduct ? editingProduct.id : `${category}-${Date.now()}`,
       name: name.trim(),
@@ -386,11 +424,7 @@ export default function AdminPanel({
       cbd: Number(cbd) || 0,
       thc: Number(thc) || 0,
       aroma: aromas,
-      prices: {
-        '1.5g': Number(price15),
-        '5g': Number(price5),
-        '10g': Number(price10),
-      },
+      prices: pricesObj,
       image: imageUrl.trim(),
       badge: badge.trim() || undefined,
     };
@@ -635,19 +669,13 @@ export default function AdminPanel({
                   </div>
 
                   {/* Prices breakdown */}
-                  <div className="grid grid-cols-3 gap-2 mt-5 p-2 bg-slate-950/65 rounded-xl border border-white/5 text-center">
-                    <div>
-                      <p className="text-[8px] font-mono uppercase text-zinc-600">1.5g</p>
-                      <span className="text-xs font-bold text-white font-mono">€{p.prices['1.5g'].toFixed(2)}</span>
-                    </div>
-                    <div>
-                      <p className="text-[8px] font-mono uppercase text-zinc-600">5g</p>
-                      <span className="text-xs font-bold text-white font-mono">€{p.prices['5g'].toFixed(2)}</span>
-                    </div>
-                    <div>
-                      <p className="text-[8px] font-mono uppercase text-zinc-600">10g</p>
-                      <span className="text-xs font-bold text-white font-mono">€{p.prices['10g'].toFixed(2)}</span>
-                    </div>
+                  <div className="flex flex-wrap justify-center gap-2 mt-5 p-2 bg-slate-950/65 rounded-xl border border-white/5 text-center">
+                    {Object.entries(p.prices || {}).map(([weight, price]) => (
+                      <div key={weight} className="flex-1 min-w-[50px] max-w-[80px]">
+                        <p className="text-[8px] font-mono uppercase text-zinc-600 truncate">{weight}</p>
+                        <span className="text-xs font-bold text-white font-mono">€{Number(price || 0).toFixed(2)}</span>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Action buttons */}
@@ -954,38 +982,35 @@ USING (bucket_id = '${(import.meta as any).env.VITE_SUPABASE_BUCKET || 'products
 
                   {/* Pricing Matrix */}
                   <div className="col-span-2 pt-2 border-t border-white/5">
-                    <h5 className="text-[10px] uppercase font-mono tracking-widest text-zinc-500 mb-3">Prezzi per quantitativo (Euro)</h5>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-zinc-600 mb-1">1.5 grammi</label>
-                        <input
-                          type="number"
-                          step="0.05"
-                          value={price15}
-                          onChange={(e) => setPrice15(Number(e.target.value))}
-                          className="w-full bg-slate-950 border border-white/5 focus:border-white/20 rounded-xl p-3 text-white font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/15"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-zinc-600 mb-1">5 grammi</label>
-                        <input
-                          type="number"
-                          step="0.05"
-                          value={price5}
-                          onChange={(e) => setPrice5(Number(e.target.value))}
-                          className="w-full bg-slate-950 border border-white/5 focus:border-white/20 rounded-xl p-3 text-white font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/15"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-zinc-600 mb-1">10 grammi</label>
-                        <input
-                          type="number"
-                          step="0.05"
-                          value={price10}
-                          onChange={(e) => setPrice10(Number(e.target.value))}
-                          className="w-full bg-slate-950 border border-white/5 focus:border-white/20 rounded-xl p-3 text-white font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/15"
-                        />
-                      </div>
+                    <div className="flex justify-between items-center mb-3">
+                      <h5 className="text-[10px] uppercase font-mono tracking-widest text-zinc-500">Pesi & Prezzi</h5>
+                      <button
+                        type="button"
+                        onClick={openWeightsModal}
+                        className="py-1.5 px-3 bg-[#3d0f0f] hover:bg-[#4d1414] border border-red-500/20 hover:border-red-500/40 text-[10px] font-mono text-red-300 hover:text-white rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                      >
+                        <Edit3 className="h-3 w-3" />
+                        <span>Gestisci Pesi e Prezzi</span>
+                      </button>
+                    </div>
+
+                    <div className="bg-slate-950/40 border border-white/5 rounded-2xl p-4">
+                      {customPrices.length === 0 ? (
+                        <p className="text-zinc-500 text-xs font-mono text-center py-2">
+                          Nessun quantitativo configurato. Clicca su "Gestisci Pesi e Prezzi" per aggiungerne.
+                        </p>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {customPrices.map((item, idx) => (
+                            <div key={idx} className="bg-slate-950/80 border border-white/[0.03] p-3 rounded-xl flex flex-col gap-1">
+                              <span className="text-[8px] uppercase font-mono text-zinc-500 tracking-wider">Quantità / Peso</span>
+                              <span className="text-xs font-bold text-white truncate font-sans">{item.weight || '(Senza etichetta)'}</span>
+                              <span className="text-[8px] uppercase font-mono text-zinc-500 tracking-wider mt-1">Prezzo (€)</span>
+                              <span className="text-xs font-mono font-bold text-rose-400">€{Number(item.price || 0).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1167,6 +1192,134 @@ USING (bucket_id = '${(import.meta as any).env.VITE_SUPABASE_BUCKET || 'products
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* CUSTOM WEIGHTS & PRICES MODAL */}
+        {isWeightsModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsWeightsModalOpen(false)}
+              className="absolute inset-0 bg-[#1c0505]/95 backdrop-blur-md"
+            />
+
+            {/* Modal Body */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md bg-[#220707] border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden z-10"
+            >
+              <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider font-sans">
+                    Configura Pesi & Prezzi
+                  </h3>
+                  <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider mt-0.5">
+                    Aggiungi o personalizza quantitativi e prezzi
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsWeightsModalOpen(false)}
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="max-h-[240px] overflow-y-auto space-y-3 pr-1 my-4 custom-scrollbar">
+                {tempWeights.length === 0 ? (
+                  <p className="text-center text-zinc-500 text-xs py-4 font-mono">
+                    Nessun quantitativo impostato. Aggiungine uno!
+                  </p>
+                ) : (
+                  tempWeights.map((item, index) => (
+                    <div key={index} className="flex gap-2 items-center bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                      <div className="flex-1">
+                        <label className="block text-[8px] uppercase font-mono text-zinc-500 mb-0.5">Etichetta Peso (es: 1.5g, 3pz)</label>
+                        <input
+                          type="text"
+                          value={item.weight}
+                          placeholder="es: 1.5g"
+                          onChange={(e) => {
+                            const newTemp = [...tempWeights];
+                            newTemp[index].weight = e.target.value;
+                            setTempWeights(newTemp);
+                          }}
+                          className="w-full bg-slate-950 border border-white/5 focus:border-white/20 rounded-lg p-2 text-xs text-white font-mono focus:outline-none"
+                        />
+                      </div>
+                      <div className="w-[100px]">
+                        <label className="block text-[8px] uppercase font-mono text-zinc-500 mb-0.5">Prezzo (€)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={item.price || ''}
+                          onChange={(e) => {
+                            const newTemp = [...tempWeights];
+                            newTemp[index].price = Number(e.target.value);
+                            setTempWeights(newTemp);
+                          }}
+                          className="w-full bg-slate-950 border border-white/5 focus:border-white/20 rounded-lg p-2 text-xs text-white font-mono focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newTemp = tempWeights.filter((_, idx) => idx !== index);
+                          setTempWeights(newTemp);
+                        }}
+                        className="p-2 mt-4 text-zinc-500 hover:text-red-400 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                        title="Rimuovi"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-2.5 mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempWeights([...tempWeights, { weight: '', price: 0 }]);
+                  }}
+                  className="flex-1 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 hover:text-rose-300 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Aggiungi Opzione</span>
+                </button>
+              </div>
+
+              <div className="flex gap-3 mt-4 pt-4 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setIsWeightsModalOpen(false)}
+                  className="flex-1 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-zinc-400 hover:text-white font-bold transition-all text-xs"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Filter empty weight records
+                    const filtered = tempWeights.filter(item => item.weight.trim() !== '');
+                    setCustomPrices(filtered);
+                    setIsWeightsModalOpen(false);
+                  }}
+                  className="flex-1 py-2 bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white font-black uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-red-950/20 text-xs"
+                >
+                  Conferma
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

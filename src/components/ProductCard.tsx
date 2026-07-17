@@ -8,9 +8,24 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const [selectedSize, setSelectedSize] = useState<GramOption>('1.5g');
-  const sizeOptions: GramOption[] = ['1.5g', '5g', '10g'];
-  const currentPrice = product.prices[selectedSize];
+  const sizeOptions = Object.keys(product.prices || {}).length > 0 
+    ? Object.keys(product.prices) 
+    : ['1.5g'];
+  const [selectedSize, setSelectedSize] = useState<GramOption>(sizeOptions[0] || '1.5g');
+  
+  // Safe resolution if the selectedSize is no longer present or if options changed
+  const activeSize = product.prices[selectedSize] !== undefined ? selectedSize : sizeOptions[0];
+  const currentPrice = product.prices[activeSize] || 0;
+
+  // Extract weight number and label to calculate unit price
+  const parseWeightNumber = (str: string): number | null => {
+    const match = str.replace(',', '.').match(/([0-9]+(?:\.[0-9]+)?)/);
+    return match ? parseFloat(match[1]) : null;
+  };
+
+  const weightNum = parseWeightNumber(activeSize);
+  const isGram = activeSize.toLowerCase().includes('g') || activeSize.toLowerCase().includes('gram');
+  const unitLabel = isGram ? 'g' : 'u';
   
   // Custom aura colors per category
   const isWeed = product.category === 'weed';
@@ -72,14 +87,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Weight Selector (Quantitativo) */}
         <div className="mb-6">
           <p className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 mb-2">Quantitativo</p>
-          <div className="bg-slate-950/60 p-1 rounded-xl border border-white/5">
-            <div className="grid grid-cols-3 gap-1">
+          <div className="bg-slate-950/60 p-1.5 rounded-xl border border-white/5">
+            <div className="flex flex-wrap gap-1">
               {sizeOptions.map((size) => (
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
-                  className={`py-1.5 px-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    selectedSize === size
+                  className={`flex-1 min-w-[50px] py-1.5 px-2 text-xs font-bold rounded-lg transition-all cursor-pointer text-center ${
+                    activeSize === size
                       ? (isWeed 
                           ? 'bg-gradient-to-b from-white/10 to-white/5 border border-rose-500/30 text-rose-400 shadow-md' 
                           : 'bg-gradient-to-b from-white/10 to-white/5 border border-red-500/30 text-red-400 shadow-md')
@@ -103,9 +118,11 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
 
           <div className="text-right">
-            <span className="text-[10px] text-zinc-400 font-mono">
-              ~ €{(currentPrice / (selectedSize === '1.5g' ? 1.5 : selectedSize === '5g' ? 5 : 10)).toFixed(2)}/g
-            </span>
+            {weightNum && weightNum > 0 ? (
+              <span className="text-[10px] text-zinc-400 font-mono">
+                ~ €{(currentPrice / weightNum).toFixed(2)}/{unitLabel}
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
