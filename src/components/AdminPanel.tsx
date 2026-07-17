@@ -305,7 +305,7 @@ export default function AdminPanel({
         const bucketName = (import.meta as any).env.VITE_SUPABASE_BUCKET || 'products';
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-        const filePath = `product-media/${fileName}`;
+        const filePath = `product-photos/${fileName}`;
 
         const { error } = await supabase.storage
           .from(bucketName)
