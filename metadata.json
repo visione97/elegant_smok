@@ -1,0 +1,6 @@
+{
+  "name": "Elegant Smoking",
+  "description": "Un sito web vetrina minimale ed elegante in stile Apple con catalogo prodotti interattivo, calcolo dinamico dei prezzi basato sui grammi ed area riservata admin.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
