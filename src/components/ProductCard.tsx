@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Volume2, VolumeX } from 'lucide-react';
-import { Product, GramOption } from '../types';
+import { Product, GramOption, Category } from '../types';
 
 interface ProductCardProps {
   key?: string;
   product: Product;
+  categories?: Category[];
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, categories = [] }: ProductCardProps) {
   const sizeOptions = Object.keys(product.prices || {}).length > 0 
     ? Object.keys(product.prices) 
     : ['1.5g'];
@@ -82,13 +83,20 @@ export default function ProductCard({ product }: ProductCardProps) {
         
         {/* Absolute category badge */}
         <div className="absolute top-4 left-4 z-10">
-          <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider border backdrop-blur-md ${
-            isWeed 
-              ? 'bg-rose-950/80 text-rose-300 border-rose-500/30' 
-              : 'bg-red-950/80 text-red-300 border-red-500/30'
-          }`}>
-            {isWeed ? 'Weed 🌿' : 'Hash 🍫'}
-          </span>
+          {(() => {
+            const matchingCat = categories.find(c => c.id === product.category);
+            const label = matchingCat ? matchingCat.label : (product.category.charAt(0).toUpperCase() + product.category.slice(1));
+            const emoji = matchingCat ? matchingCat.emoji : '✨';
+            return (
+              <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider border backdrop-blur-md ${
+                isWeed 
+                  ? 'bg-rose-950/80 text-rose-300 border-rose-500/30' 
+                  : 'bg-red-950/80 text-red-300 border-red-500/30'
+              }`}>
+                {label} {emoji}
+              </span>
+            );
+          })()}
         </div>
       </div>
 

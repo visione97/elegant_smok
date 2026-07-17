@@ -722,13 +722,20 @@ export default function AdminPanel({
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${
-                          isWeed 
-                            ? 'bg-rose-950/40 text-rose-300 border-rose-500/20' 
-                            : 'bg-red-950/40 text-red-300 border-red-500/20'
-                        }`}>
-                          {isWeed ? 'Weed' : 'Hash'}
-                        </span>
+                        {(() => {
+                          const matchingCat = categories.find(c => c.id === p.category);
+                          const label = matchingCat ? matchingCat.label : (p.category.charAt(0).toUpperCase() + p.category.slice(1));
+                          const emoji = matchingCat ? matchingCat.emoji : '✨';
+                          return (
+                            <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${
+                              isWeed 
+                                ? 'bg-rose-950/40 text-rose-300 border-rose-500/20' 
+                                : 'bg-red-950/40 text-red-300 border-red-500/20'
+                            }`}>
+                              {label} {emoji}
+                            </span>
+                          );
+                        })()}
                         {p.badge && (
                           <span className="text-[9px] uppercase font-bold bg-red-500/10 text-red-300 px-2 py-0.5 rounded border border-red-500/20 flex items-center gap-0.5">
                             <Sparkles className="h-2 w-2" /> {p.badge}

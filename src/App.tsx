@@ -15,6 +15,29 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'hash', label: 'Hash', emoji: '🍫' }
 ];
 
+export const getCategoryDetails = (slug: string) => {
+  const mapping: { [key: string]: { label: string; emoji: string } } = {
+    weed: { label: 'Weed', emoji: '🌿' },
+    hash: { label: 'Hash', emoji: '🍫' },
+    oil: { label: 'Olio / Estratti', emoji: '💧' },
+    cbd: { label: 'CBD', emoji: '🌱' },
+    accessories: { label: 'Accessori', emoji: '🔌' },
+    vape: { label: 'Vape', emoji: '💨' },
+    edibles: { label: 'Edibles', emoji: '🍪' },
+    seeds: { label: 'Semi', emoji: '🌰' },
+    concentrates: { label: 'Concentrati', emoji: '🍯' },
+  };
+
+  const s = slug.toLowerCase();
+  if (mapping[s]) {
+    return mapping[s];
+  }
+
+  // Fallback: capitalize first letter of slug
+  const label = slug.charAt(0).toUpperCase() + slug.slice(1);
+  return { label, emoji: '✨' };
+};
+
 export default function App() {
   const [activeSection, setActiveSection] = useState('catalog');
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -241,6 +264,19 @@ export default function App() {
     return false;
   };
 
+  // Dynamically extract any categories from products list that aren't in the categories array
+  const displayedCategories = [...categories];
+  products.forEach((p) => {
+    if (p.category && !displayedCategories.some((c) => c.id === p.category)) {
+      const details = getCategoryDetails(p.category);
+      displayedCategories.push({
+        id: p.category,
+        label: details.label,
+        emoji: details.emoji
+      });
+    }
+  });
+
   // Filter products based on search and category
   const filteredProducts = products.filter((product) => {
     const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
@@ -370,7 +406,7 @@ export default function App() {
             <div className="flex flex-wrap gap-1 bg-slate-900/80 border border-white/10 rounded-2xl p-1.5 shrink-0 shadow-xl">
               {[
                 { id: 'all', label: 'Tutti i Prodotti', emoji: '' },
-                ...categories
+                ...displayedCategories
               ].map((cat) => (
                 <button
                   key={cat.id}
@@ -415,6 +451,7 @@ export default function App() {
                   <ProductCard 
                     key={`${product.id}-${idx}`} 
                     product={product} 
+                    categories={displayedCategories}
                   />
                 ))}
               </div>
