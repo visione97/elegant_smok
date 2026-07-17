@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   Info,
   Upload,
-  Image
+  Image,
+  Video
 } from 'lucide-react';
 import { Product } from '../types';
 import { supabase } from '../supabaseClient';
@@ -289,8 +290,8 @@ export default function AdminPanel({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 15 * 1024 * 1024) {
-      setFormError("Il file dell'immagine è troppo grande. Scegli un'immagine inferiore a 15MB.");
+    if (file.size > 50 * 1024 * 1024) {
+      setFormError("Il file selezionato è troppo grande. Scegli un file inferiore a 50MB.");
       return;
     }
 
@@ -304,7 +305,7 @@ export default function AdminPanel({
         const bucketName = (import.meta as any).env.VITE_SUPABASE_BUCKET || 'products';
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-        const filePath = `product-photos/${fileName}`;
+        const filePath = `product-media/${fileName}`;
 
         const { error } = await supabase.storage
           .from(bucketName)
@@ -337,7 +338,7 @@ export default function AdminPanel({
         setFormError(null);
       };
       reader.onerror = () => {
-        setFormError("Errore durante la lettura locale dell'immagine.");
+        setFormError("Errore durante la lettura locale del file multimediale.");
       };
       reader.readAsDataURL(file);
     }
@@ -345,7 +346,7 @@ export default function AdminPanel({
 
   const handleBase64Fallback = () => {
     if (!lastSelectedFile) {
-      setFormError("Nessun file immagine selezionato da convertire.");
+      setFormError("Nessun file selezionato da convertire.");
       return;
     }
     const reader = new FileReader();
@@ -843,17 +844,17 @@ USING (bucket_id = '${(import.meta as any).env.VITE_SUPABASE_BUCKET || 'products
                     />
                   </div>
 
-                  {/* Foto Prodotto (Device Upload Picker) */}
+                  {/* Foto o Video Prodotto (Device Upload Picker) */}
                   <div className="col-span-2">
                     <label className="block text-[10px] uppercase font-mono tracking-wider text-zinc-500 mb-1.5">
-                      Foto Prodotto *
+                      Foto o Video Prodotto *
                     </label>
                     
                     <div className="relative">
                       <input
                         id="product-photo-upload"
                         type="file"
-                        accept="image/*"
+                        accept="image/*,video/*"
                         className="sr-only"
                         onChange={handleFileChange}
                       />
@@ -861,26 +862,38 @@ USING (bucket_id = '${(import.meta as any).env.VITE_SUPABASE_BUCKET || 'products
                       {isUploadingImage ? (
                         <div className="flex flex-col items-center justify-center h-44 w-full border border-rose-500/30 bg-slate-950/60 rounded-2xl animate-pulse p-4">
                           <div className="h-8 w-8 rounded-full border-2 border-t-rose-500 border-rose-500/20 animate-spin mb-3" />
-                          <span className="text-xs font-bold text-rose-400 font-mono uppercase tracking-wider">Caricamento Foto...</span>
+                          <span className="text-xs font-bold text-rose-400 font-mono uppercase tracking-wider">Caricamento File...</span>
                           <span className="text-[10px] text-zinc-500 mt-1 text-center">
-                            Salvataggio dell'immagine nel tuo bucket di storage Supabase
+                            Salvataggio del file multimediale nel tuo bucket di storage Supabase
                           </span>
                         </div>
                       ) : imageUrl ? (
                         <div className="relative group rounded-2xl overflow-hidden border border-white/10 bg-slate-950 p-2 flex flex-col items-center">
-                          <img 
-                            src={imageUrl} 
-                            alt="Preview prodotto" 
-                            className="h-44 w-full object-cover rounded-xl"
-                            referrerPolicy="no-referrer"
-                          />
+                          {imageUrl.startsWith('data:video/') || /\.(mp4|webm|ogg|mov|m4v|avi)(?:\?|$)/i.test(imageUrl) ? (
+                            <video 
+                              src={imageUrl} 
+                              controls
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                              className="h-44 w-full object-cover rounded-xl"
+                            />
+                          ) : (
+                            <img 
+                              src={imageUrl} 
+                              alt="Preview prodotto" 
+                              className="h-44 w-full object-cover rounded-xl"
+                              referrerPolicy="no-referrer"
+                            />
+                          )}
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                             <label 
                               htmlFor="product-photo-upload" 
                               className="px-4 py-2 bg-white text-slate-950 font-mono font-bold text-[11px] rounded-xl cursor-pointer hover:bg-rose-100 transition-all shadow-md flex items-center gap-1.5 animate-none"
                             >
                               <Upload className="h-3 w-3" />
-                              Cambia Foto
+                              Cambia File
                             </label>
                             <button
                               type="button"
@@ -893,8 +906,17 @@ USING (bucket_id = '${(import.meta as any).env.VITE_SUPABASE_BUCKET || 'products
                           </div>
                           <div className="w-full mt-2 flex justify-between items-center px-1">
                             <span className="text-[10px] text-zinc-500 font-mono flex items-center gap-1">
-                              <Image className="h-3 w-3 text-rose-400" />
-                              Foto caricata correttamente
+                              {imageUrl.startsWith('data:video/') || /\.(mp4|webm|ogg|mov|m4v|avi)(?:\?|$)/i.test(imageUrl) ? (
+                                <>
+                                  <Video className="h-3 w-3 text-rose-400" />
+                                  Video caricato correttamente
+                                </>
+                              ) : (
+                                <>
+                                  <Image className="h-3 w-3 text-rose-400" />
+                                  Foto caricata correttamente
+                                </>
+                              )}
                             </span>
                             <div className="flex gap-2">
                               <label 
@@ -922,10 +944,10 @@ USING (bucket_id = '${(import.meta as any).env.VITE_SUPABASE_BUCKET || 'products
                             <Upload className="h-5 w-5 text-zinc-400 group-hover:text-rose-400 transition-colors" />
                           </div>
                           <span className="text-xs font-bold text-zinc-300 group-hover:text-white transition-colors">
-                            Carica foto da dispositivo
+                            Carica foto o video da dispositivo
                           </span>
                           <span className="text-[10px] text-zinc-500 mt-1">
-                            Seleziona galleria o file dal telefono/PC
+                            Seleziona galleria o file dal telefono/PC (fino a 50MB)
                           </span>
                         </label>
                       )}

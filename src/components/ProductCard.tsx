@@ -31,12 +31,23 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Media container */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-950">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          referrerPolicy="no-referrer"
-        />
+        {product.image && (product.image.startsWith('data:video/') || /\.(mp4|webm|ogg|mov|m4v|avi)(?:\?|$)/i.test(product.image)) ? (
+          <video
+            src={product.image}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+        ) : (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            referrerPolicy="no-referrer"
+          />
+        )}
         
         {/* Absolute category badge */}
         <div className="absolute top-4 left-4 z-10">
