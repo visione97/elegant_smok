@@ -8,6 +8,7 @@ import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import AdminPanel from './components/AdminPanel';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
+import bannerImg from '../BANNER.png';
 
 export default function App() {
   const [activeSection, setActiveSection] = useState('catalog');
@@ -59,7 +60,18 @@ export default function App() {
             image: item.image,
             badge: item.badge || undefined
           }));
-          setProducts(parsed);
+
+          // Remove potential duplicate product IDs to prevent React key collision warnings
+          const uniqueParsed: Product[] = [];
+          const seenIds = new Set<string>();
+          for (const prod of parsed) {
+            if (prod.id && !seenIds.has(prod.id)) {
+              seenIds.add(prod.id);
+              uniqueParsed.push(prod);
+            }
+          }
+
+          setProducts(uniqueParsed);
           setUseLiveDb(true);
           setDbError(null);
         }
@@ -261,93 +273,19 @@ export default function App() {
         </div>
       )}
 
-      {/* SPECTACULAR URBAN GRAFFITI MURAL BILLBOARD */}
+      {/* SPECTACULAR PREMIUM CINEMATIC BILLBOARD */}
       <header className="relative pt-24 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl bg-slate-950 min-h-[360px] md:min-h-[440px] flex items-center justify-center p-6 md:p-12">
+        <div 
+          className="relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl bg-slate-950 min-h-[200px] sm:min-h-[340px] md:min-h-[460px] lg:min-h-[520px] flex items-center bg-cover bg-center"
+          style={{ 
+            backgroundImage: `url(${bannerImg})` 
+          }}
+        >
+          {/* Subtle elegant vignette shadow overlay around the edges */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
           
-          {/* Dark textured brick wall background mimicking the user's uploaded art */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center mix-blend-luminosity opacity-40 select-none pointer-events-none"
-            style={{ 
-              backgroundImage: 'url("https://images.unsplash.com/photo-1524055988636-436cfa46e59e?auto=format&fit=crop&q=80&w=1600")' 
-            }}
-          />
-          
-          {/* Graffiti colorful glow backdrop */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-rose-950/50 via-purple-900/30 to-red-950/50 opacity-90 pointer-events-none" />
-          
-          {/* Vibrant spray paint neon halos in rose, purple, and gold */}
-          <div className="absolute top-1/4 left-1/4 h-[200px] w-[200px] rounded-full bg-rose-500/20 blur-[70px] pointer-events-none animate-pulse duration-[4000ms]" />
-          <div className="absolute bottom-1/4 right-1/4 h-[240px] w-[240px] rounded-full bg-purple-500/20 blur-[90px] pointer-events-none animate-pulse duration-[6000ms]" />
-          <div className="absolute top-1/3 right-1/3 h-[180px] w-[180px] rounded-full bg-amber-500/15 blur-[60px] pointer-events-none" />
-          
-          {/* Soft cloud vectors mimicking the graffiti smoke trails in the mural */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -left-12 bottom-12 text-white/5 animate-pulse duration-[8000ms]">
-              <svg className="h-44 w-44" viewBox="0 0 100 100" fill="currentColor">
-                <path d="M20,50 Q30,35 50,45 T80,50 Q90,65 70,75 T30,70 Z" />
-              </svg>
-            </div>
-            <div className="absolute -right-12 top-12 text-white/5 animate-pulse duration-[7000ms]">
-              <svg className="h-52 w-52" viewBox="0 0 100 100" fill="currentColor">
-                <path d="M20,50 Q30,35 50,45 T80,50 Q90,65 70,75 T30,70 Z" />
-              </svg>
-            </div>
-          </div>
-
-          {/* Main graffiti billboard contents */}
-          <div className="relative z-10 text-center max-w-3xl flex flex-col items-center">
-            
-            {/* Flanking yellow stars matching the star graphics from the uploaded graffiti */}
-            <div className="flex gap-4 mb-4 items-center justify-center">
-              <motion.div 
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
-                className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]"
-              >
-                <Sparkles className="h-5 w-5 stroke-[2.5]" />
-              </motion.div>
-              
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/10 bg-black/50 text-rose-300 text-[10px] font-black tracking-widest uppercase backdrop-blur-md">
-                <Sparkles className="h-3 w-3 animate-pulse" /> Archivio Selezionato
-              </div>
-
-              <motion.div 
-                animate={{ rotate: -360 }}
-                transition={{ repeat: Infinity, duration: 18, ease: "linear" }}
-                className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]"
-              >
-                <Sparkles className="h-4 w-4 stroke-[2.5]" />
-              </motion.div>
-            </div>
-
-            {/* GRAFFITI TEXT WITH 3D POP & CHROMATIC SHADOWS */}
-            <div className="relative select-none my-6">
-              {/* Retro extrusion layer (Purple) */}
-              <h1 className="font-marker text-5xl sm:text-7xl md:text-8xl text-purple-950 absolute top-1.5 left-1.5 w-full text-center select-none tracking-wide uppercase opacity-95">
-                ELEGANT SMOKING
-              </h1>
-              {/* Secondary offset shadow layer (Vibrant Coral Red) */}
-              <h1 className="font-marker text-5xl sm:text-7xl md:text-8xl text-red-900 absolute -top-1 -left-1 w-full text-center select-none tracking-wide uppercase opacity-80">
-                ELEGANT SMOKING
-              </h1>
-              {/* Main front glowing graffiti letters with a multi-colored gradient */}
-              <h1 className="font-marker text-5xl sm:text-7xl md:text-8xl text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-rose-400 to-purple-400 tracking-wide uppercase drop-shadow-[0_6px_20px_rgba(244,63,94,0.5)] transform hover:scale-[1.02] transition-transform duration-300 cursor-default">
-                ELEGANT SMOKING
-              </h1>
-            </div>
-
-          </div>
-          
-          {/* Aesthetic paint drippings along the bottom border */}
-          <div className="absolute bottom-0 left-0 right-0 h-2 flex justify-around opacity-50 pointer-events-none">
-            <div className="w-1.5 h-6 bg-yellow-400 rounded-b-full" />
-            <div className="w-1.5 h-10 bg-rose-500 rounded-b-full" />
-            <div className="w-1.5 h-4 bg-purple-500 rounded-b-full" />
-            <div className="w-1.5 h-8 bg-red-600 rounded-b-full" />
-            <div className="w-1.5 h-5 bg-rose-400 rounded-b-full" />
-          </div>
-
+          {/* Ambient lighting borders */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent opacity-60 pointer-events-none" />
         </div>
       </header>
 
@@ -403,9 +341,9 @@ export default function App() {
           ) : (
             !dbLoading && (
               <div id="minimal-products-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredProducts.map((product) => (
+                {filteredProducts.map((product, idx) => (
                   <ProductCard 
-                    key={product.id} 
+                    key={`${product.id}-${idx}`} 
                     product={product} 
                   />
                 ))}

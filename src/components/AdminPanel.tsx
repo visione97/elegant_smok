@@ -9,12 +9,10 @@ import {
   Save, 
   X, 
   ArrowLeft, 
-  Percent, 
   Sparkles, 
   Database,
   CloudLightning,
   AlertTriangle,
-  Info,
   Upload,
   Image,
   Video
@@ -601,11 +599,11 @@ export default function AdminPanel({
 
           {/* Simple Products Admin List Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((p) => {
+            {products.map((p, idx) => {
               const isWeed = p.category === 'weed';
               return (
                 <div 
-                  key={p.id}
+                  key={`${p.id}-${idx}`}
                   className={`bg-[#220707]/60 rounded-3xl border p-5 flex flex-col relative transition-all hover:bg-[#220707]/80 ${
                     isWeed ? 'border-rose-500/15' : 'border-red-500/15'
                   }`}
@@ -833,11 +831,11 @@ USING (bucket_id = '${(import.meta as any).env.VITE_SUPABASE_BUCKET || 'products
                   {/* Badge */}
                   <div>
                     <label className="block text-[10px] uppercase font-mono tracking-wider text-zinc-500 mb-1">
-                      Badge / Offerta Specifica (Opzionale)
+                      Badge / In Evidenza (Opzionale)
                     </label>
                     <input
                       type="text"
-                      placeholder="es. Sconto 20%, Novità, Top Seller..."
+                      placeholder="es. Novità, Top Seller, Special Edition..."
                       value={badge}
                       onChange={(e) => setBadge(e.target.value)}
                       className="w-full bg-slate-950 border border-white/5 focus:border-white/20 rounded-xl p-3 text-white placeholder-zinc-650 focus:outline-none focus:ring-1 focus:ring-rose-500/15"
