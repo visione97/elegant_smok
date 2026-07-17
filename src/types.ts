@@ -1,7 +1,7 @@
 export interface Product {
   id: string;
   name: string;
-  category: 'weed' | 'hash';
+  category: string;
   tagline: string;
   description: string;
   cbd: number; // percentage
@@ -10,6 +10,12 @@ export interface Product {
   prices: Record<string, number>;
   image: string; // URL
   badge?: string; // e.g. "Best Seller", "New"
+}
+
+export interface Category {
+  id: string;
+  label: string;
+  emoji: string;
 }
 
 export type GramOption = string;

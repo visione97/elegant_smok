@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, Search, Instagram } from 'lucide-react';
 import { motion } from 'motion/react';
 
-import { Product } from './types';
+import { Product, Category } from './types';
 import AgeVerification from './components/AgeVerification';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
@@ -10,9 +10,14 @@ import AdminPanel from './components/AdminPanel';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import bannerImg from '../BANNER.png';
 
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'weed', label: 'Weed', emoji: '🌿' },
+  { id: 'hash', label: 'Hash', emoji: '🍫' }
+];
+
 export default function App() {
   const [activeSection, setActiveSection] = useState('catalog');
-  const [activeCategory, setActiveCategory] = useState<'all' | 'weed' | 'hash'>('all');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
@@ -21,6 +26,17 @@ export default function App() {
 
   // State management
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>(() => {
+    const stored = localStorage.getItem('elegantsmoking_categories');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return DEFAULT_CATEGORIES;
+  });
   const [dbLoading, setDbLoading] = useState(false);
   const [useLiveDb, setUseLiveDb] = useState(isSupabaseConfigured);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -41,12 +57,12 @@ export default function App() {
         if (error) {
           throw error;
         }
-
+ 
         if (data) {
           const parsed: Product[] = data.map((item: any) => ({
             id: item.id,
             name: item.name,
-            category: item.category as 'weed' | 'hash',
+            category: String(item.category || 'weed'),
             tagline: item.tagline || 'Aroma e Terpeni Intatti',
             description: item.description || '',
             cbd: Number(item.cbd) || 0,
@@ -86,6 +102,58 @@ export default function App() {
 
     fetchProducts();
   }, []);
+
+  // Fetch live categories from Supabase (or fallback to local)
+  useEffect(() => {
+    async function fetchCategories() {
+      if (!isSupabaseConfigured || !supabase) return;
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*');
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const parsed: Category[] = data.map((item: any) => ({
+            id: item.id,
+            label: item.label,
+            emoji: item.emoji
+          }));
+          setCategories(parsed);
+          localStorage.setItem('elegantsmoking_categories', JSON.stringify(parsed));
+        }
+      } catch (err) {
+        console.warn('Tabella categories non trovata o non accessibile in Supabase, si usa il localStorage.', err);
+      }
+    }
+    fetchCategories();
+  }, [useLiveDb]);
+
+  // Handler for adding dynamic category
+  const handleAddCategory = async (newCat: Category): Promise<boolean> => {
+    const updated = [...categories, newCat];
+    setCategories(updated);
+    localStorage.setItem('elegantsmoking_categories', JSON.stringify(updated));
+
+    if (supabase && isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('categories')
+          .insert([
+            {
+              id: newCat.id,
+              label: newCat.label,
+              emoji: newCat.emoji
+            }
+          ]);
+        if (error) {
+          console.warn('Errore durante il salvataggio remoto della categoria (forse la tabella non esiste):', error.message);
+        }
+      } catch (err) {
+        console.warn('Errore Supabase categories:', err);
+      }
+    }
+    return true;
+  };
 
   // 2. Database Insertion (Create)
   const handleAddProduct = async (newProduct: Product): Promise<boolean> => {
@@ -197,6 +265,8 @@ export default function App() {
     return (
       <AdminPanel
         products={products}
+        categories={categories}
+        onAddCategory={handleAddCategory}
         onAddProduct={handleAddProduct}
         onUpdateProduct={handleUpdateProduct}
         onDeleteProduct={handleDeleteProduct}
@@ -212,14 +282,14 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1c0505] via-[#380c0c] to-[#6d1313] text-slate-100 font-sans selection:bg-rose-500/20 selection:text-rose-300 relative overflow-x-hidden animate-fade-in">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_center,_#0F0A14_0%,_#000000_100%)] text-slate-100 font-sans selection:bg-rose-500/20 selection:text-rose-300 relative overflow-x-hidden animate-fade-in">
       
       {/* 18+ AGE VERIFICATION SCREEN */}
       <AgeVerification />
 
       {/* LIGHT DECORATIVE AMBIENCE */}
-      <div className="absolute top-0 left-1/4 h-[300px] w-[500px] rounded-full bg-rose-500/10 blur-[120px] pointer-events-none" />
-      <div className="absolute top-[50%] right-[-10%] h-[400px] w-[400px] rounded-full bg-red-500/10 blur-[150px] pointer-events-none" />
+      <div className="absolute top-0 left-1/4 h-[300px] w-[500px] rounded-full bg-violet-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[50%] right-[-10%] h-[400px] w-[400px] rounded-full bg-purple-500/10 blur-[150px] pointer-events-none" />
 
       {/* MAIN TOP NAVIGATION - NOW INCLUDES SECURE PORTAL BUTTON */}
       <Navbar 
@@ -297,22 +367,22 @@ export default function App() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pb-10 border-b border-white/[0.06] mb-12">
             
             {/* Category selection */}
-            <div className="flex bg-slate-900/80 border border-white/10 rounded-2xl p-1.5 shrink-0 shadow-xl">
+            <div className="flex flex-wrap gap-1 bg-slate-900/80 border border-white/10 rounded-2xl p-1.5 shrink-0 shadow-xl">
               {[
-                { id: 'all', label: 'Tutti i Prodotti' },
-                { id: 'weed', label: 'Weed 🌿' },
-                { id: 'hash', label: 'Hash 🍫' },
+                { id: 'all', label: 'Tutti i Prodotti', emoji: '' },
+                ...categories
               ].map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => setActiveCategory(cat.id as any)}
-                  className={`py-2.5 px-5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`py-2.5 px-5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     activeCategory === cat.id
                       ? 'bg-gradient-to-b from-white/15 to-white/5 border border-white/10 text-white shadow-lg'
                       : 'text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
-                  {cat.label}
+                  <span>{cat.label}</span>
+                  {cat.emoji && <span className="text-sm">{cat.emoji}</span>}
                 </button>
               ))}
             </div>

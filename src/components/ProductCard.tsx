@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { Product, GramOption } from '../types';
 
 interface ProductCardProps {
@@ -12,6 +13,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     ? Object.keys(product.prices) 
     : ['1.5g'];
   const [selectedSize, setSelectedSize] = useState<GramOption>(sizeOptions[0] || '1.5g');
+  const [isMuted, setIsMuted] = useState(true);
   
   // Safe resolution if the selectedSize is no longer present or if options changed
   const activeSize = product.prices[selectedSize] !== undefined ? selectedSize : sizeOptions[0];
@@ -47,14 +49,28 @@ export default function ProductCard({ product }: ProductCardProps) {
       {/* Media container */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-950">
         {product.image && (product.image.startsWith('data:video/') || /\.(mp4|webm|ogg|mov|m4v|avi)(?:\?|$)/i.test(product.image)) ? (
-          <video
-            src={product.image}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
+          <>
+            <video
+              src={product.image}
+              autoPlay
+              loop
+              muted={isMuted}
+              playsInline
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            {/* Mute/Unmute toggle button */}
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="absolute bottom-3 right-3 z-20 p-2 rounded-xl bg-slate-950/80 hover:bg-slate-900 border border-white/10 hover:border-white/20 text-white transition-all cursor-pointer flex items-center justify-center shadow-lg"
+              title={isMuted ? "Attiva audio" : "Disattiva audio"}
+            >
+              {isMuted ? (
+                <VolumeX className="h-4 w-4 text-zinc-400" />
+              ) : (
+                <Volume2 className="h-4 w-4 text-rose-400 animate-pulse" />
+              )}
+            </button>
+          </>
         ) : (
           <img
             src={product.image}
@@ -89,9 +105,9 @@ export default function ProductCard({ product }: ProductCardProps) {
           <p className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 mb-2">Quantitativo</p>
           <div className="bg-slate-950/60 p-1.5 rounded-xl border border-white/5">
             <div className="flex flex-wrap gap-1">
-              {sizeOptions.map((size) => (
+              {sizeOptions.map((size, idx) => (
                 <button
-                  key={size}
+                  key={`${size}-${idx}`}
                   onClick={() => setSelectedSize(size)}
                   className={`flex-1 min-w-[50px] py-1.5 px-2 text-xs font-bold rounded-lg transition-all cursor-pointer text-center ${
                     activeSize === size

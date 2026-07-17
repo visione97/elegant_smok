@@ -1,5 +1,6 @@
 import React from 'react';
-import { Flower2, Layers, ShieldCheck, Lock } from 'lucide-react';
+import { Layers, ShieldCheck, Lock } from 'lucide-react';
+import logoPiccolo from '../../LOGO PICCOLO.png';
 
 interface NavbarProps {
   onNavClick: (section: string) => void;
@@ -23,8 +24,13 @@ export default function Navbar({ onNavClick, activeSection, isAdminMode, onAdmin
             onClick={() => onNavClick('catalog')} 
             className="flex items-center gap-2 cursor-pointer group"
           >
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-red-600 to-rose-400 p-2 shadow-inner transition-transform group-hover:scale-105">
-              <Flower2 className="h-6 w-6 text-slate-950" />
+            <div className="relative flex h-10 w-10 items-center justify-center transition-transform group-hover:scale-105">
+              <img 
+                src={logoPiccolo} 
+                alt="Logo" 
+                className="h-full w-full object-contain" 
+                referrerPolicy="no-referrer" 
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-sans text-base font-bold tracking-tight text-white leading-none">

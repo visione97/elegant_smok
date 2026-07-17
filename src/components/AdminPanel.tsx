@@ -17,11 +17,13 @@ import {
   Image,
   Video
 } from 'lucide-react';
-import { Product } from '../types';
+import { Product, Category } from '../types';
 import { supabase } from '../supabaseClient';
 
 interface AdminPanelProps {
   products: Product[];
+  categories: Category[];
+  onAddCategory: (category: Category) => Promise<boolean>;
   onAddProduct: (product: Product) => Promise<boolean>;
   onUpdateProduct: (product: Product) => Promise<boolean>;
   onDeleteProduct: (productId: string) => Promise<boolean>;
@@ -32,6 +34,8 @@ interface AdminPanelProps {
 
 export default function AdminPanel({
   products,
+  categories,
+  onAddCategory,
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
@@ -141,7 +145,7 @@ export default function AdminPanel({
 
   // Form fields
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<'weed' | 'hash'>('weed');
+  const [category, setCategory] = useState<string>('weed');
   const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
   const [cbd, setCbd] = useState<number>(20);
@@ -156,6 +160,14 @@ export default function AdminPanel({
   const [tempWeights, setTempWeights] = useState<Array<{ weight: string; price: number }>>([]);
   const [imageUrl, setImageUrl] = useState('');
   const [badge, setBadge] = useState('');
+
+  // Dynamic Category modal states
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategorySlug, setNewCategorySlug] = useState('');
+  const [newCategoryLabel, setNewCategoryLabel] = useState('');
+  const [newCategoryEmoji, setNewCategoryEmoji] = useState('');
+  const [categoryFormError, setCategoryFormError] = useState<string | null>(null);
+  const [categoryFormSuccess, setCategoryFormSuccess] = useState(false);
 
   const getMasterPasscode = () => {
     return localStorage.getItem('elegantsmocking_custom_passcode') || 'elegantsmoking420!';
@@ -260,7 +272,7 @@ export default function AdminPanel({
   const openAddForm = () => {
     setEditingProduct(null);
     setName('');
-    setCategory('weed');
+    setCategory(categories[0]?.id || 'weed');
     setTagline('');
     setDescription('');
     setCbd(20);
@@ -275,6 +287,51 @@ export default function AdminPanel({
     setBadge('');
     setFormError(null);
     setIsFormOpen(true);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCategoryFormError(null);
+    setCategoryFormSuccess(false);
+
+    const slug = newCategorySlug.trim().toLowerCase();
+    const label = newCategoryLabel.trim();
+    const emoji = newCategoryEmoji.trim();
+
+    if (!slug) {
+      setCategoryFormError("La tipologia/slug è obbligatoria.");
+      return;
+    }
+    if (!label) {
+      setCategoryFormError("Il nome visualizzato è obbligatorio.");
+      return;
+    }
+
+    // Check if category already exists
+    if (categories.some(cat => cat.id === slug)) {
+      setCategoryFormError("Questa tipologia/slug esiste già.");
+      return;
+    }
+
+    const newCat = {
+      id: slug,
+      label,
+      emoji: emoji || '🌿' // Default emoji if empty
+    };
+
+    const success = await onAddCategory(newCat);
+    if (success) {
+      setCategoryFormSuccess(true);
+      setNewCategorySlug('');
+      setNewCategoryLabel('');
+      setNewCategoryEmoji('');
+      setTimeout(() => {
+        setIsCategoryModalOpen(false);
+        setCategoryFormSuccess(false);
+      }, 1500);
+    } else {
+      setCategoryFormError("Errore nel salvataggio della categoria.");
+    }
   };
 
   const openEditForm = (prod: Product) => {
@@ -623,12 +680,27 @@ export default function AdminPanel({
               <p className="text-xs text-zinc-400">Tutti gli elementi attualmente configurati ed esposti.</p>
             </div>
 
-            <button
-              onClick={openAddForm}
-              className="py-3 px-5 bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
-            >
-              <Plus className="h-4 w-4 stroke-[3px]" /> Aggiungi Prodotto
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={openAddForm}
+                className="py-3 px-5 bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+              >
+                <Plus className="h-4 w-4 stroke-[3px]" /> Aggiungi Prodotto
+              </button>
+              <button
+                onClick={() => {
+                  setCategoryFormError(null);
+                  setCategoryFormSuccess(false);
+                  setNewCategorySlug('');
+                  setNewCategoryLabel('');
+                  setNewCategoryEmoji('');
+                  setIsCategoryModalOpen(true);
+                }}
+                className="py-3 px-5 bg-slate-900/90 hover:bg-slate-800 border border-white/10 hover:border-white/20 text-white font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+              >
+                <Plus className="h-4 w-4 stroke-[3px]" /> Aggiungi Categoria
+              </button>
+            </div>
           </div>
 
           {/* Simple Products Admin List Grid */}
@@ -670,8 +742,8 @@ export default function AdminPanel({
 
                   {/* Prices breakdown */}
                   <div className="flex flex-wrap justify-center gap-2 mt-5 p-2 bg-slate-950/65 rounded-xl border border-white/5 text-center">
-                    {Object.entries(p.prices || {}).map(([weight, price]) => (
-                      <div key={weight} className="flex-1 min-w-[50px] max-w-[80px]">
+                    {Object.entries(p.prices || {}).map(([weight, price], entryIdx) => (
+                      <div key={`${weight}-${entryIdx}`} className="flex-1 min-w-[50px] max-w-[80px]">
                         <p className="text-[8px] font-mono uppercase text-zinc-600 truncate">{weight}</p>
                         <span className="text-xs font-bold text-white font-mono">€{Number(price || 0).toFixed(2)}</span>
                       </div>
@@ -848,11 +920,14 @@ USING (bucket_id = '${(import.meta as any).env.VITE_SUPABASE_BUCKET || 'products
                     </label>
                     <select
                       value={category}
-                      onChange={(e) => setCategory(e.target.value as any)}
+                      onChange={(e) => setCategory(e.target.value)}
                       className="w-full bg-slate-950 border border-white/5 focus:border-white/20 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-rose-500/15"
                     >
-                      <option value="weed">Weed 🌿</option>
-                      <option value="hash">Hash 🍫</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.label} {cat.emoji}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1320,6 +1395,118 @@ USING (bucket_id = '${(import.meta as any).env.VITE_SUPABASE_BUCKET || 'products
                   Conferma
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* ADD CATEGORY MODAL */}
+        {isCategoryModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCategoryModalOpen(false)}
+              className="absolute inset-0 bg-[#1c0505]/95 backdrop-blur-md"
+            />
+
+            {/* Modal Body */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md bg-[#220707] border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden z-10"
+            >
+              <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider font-sans">
+                    Nuova Categoria
+                  </h3>
+                  <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider mt-0.5">
+                    Aggiungi una nuova tipologia di prodotto al catalogo
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(false)}
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCategory} className="space-y-4">
+                <div>
+                  <label className="block text-[9px] uppercase font-mono tracking-widest text-zinc-400 mb-1">
+                    Tipo Categoria / Slug (es. weed, hash, oil) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="es. weed, hash, oil"
+                    value={newCategorySlug}
+                    onChange={(e) => setNewCategorySlug(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 focus:border-white/20 rounded-xl py-2 px-3 text-xs text-white placeholder-zinc-700 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] uppercase font-mono tracking-widest text-zinc-400 mb-1">
+                    Nome Categoria (es. Weed, Hashish, Olio) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="es. Cannabis Light, Hashish, Estratti"
+                    value={newCategoryLabel}
+                    onChange={(e) => setNewCategoryLabel(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 focus:border-white/20 rounded-xl py-2 px-3 text-xs text-white placeholder-zinc-700 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] uppercase font-mono tracking-widest text-zinc-400 mb-1">
+                    Emoji Icona (es. 🌿, 🍫, 💧) *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="es. 🌿"
+                    maxLength={5}
+                    value={newCategoryEmoji}
+                    onChange={(e) => setNewCategoryEmoji(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 focus:border-white/20 rounded-xl py-2 px-3 text-xs text-white placeholder-zinc-700 focus:outline-none"
+                  />
+                </div>
+
+                {categoryFormError && (
+                  <div className="p-2 border border-red-500/20 bg-red-950/40 text-red-400 text-[10px] font-mono rounded-lg text-center leading-normal">
+                    {categoryFormError}
+                  </div>
+                )}
+
+                {categoryFormSuccess && (
+                  <div className="p-2 border border-emerald-500/20 bg-emerald-950/40 text-emerald-400 text-[10px] font-mono rounded-lg text-center leading-normal">
+                    ✓ Categoria salvata con successo!
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryModalOpen(false)}
+                    className="flex-1 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-zinc-400 hover:text-white font-bold transition-all text-[11px]"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2 bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white font-black uppercase tracking-wider rounded-xl transition-all shadow-lg text-[11px]"
+                  >
+                    Salva Categoria
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
